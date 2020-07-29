@@ -3,7 +3,7 @@ executors:
   default:
     working_directory: ~/circleciTest
     docker:
-      - image: circleci/python:3-node
+      - image: hozi894/nodeawslight:latest
 
 jobs:
   setup:
@@ -13,9 +13,9 @@ jobs:
       - run:
           name: "Version check"
           command: |
-            python --version
             node --version
             yarn --version
+            aws --version
   unit_test:
     executor: default
     steps:
@@ -40,7 +40,6 @@ jobs:
       - run:
           name: "Install"
           command: |
-            sudo pip install awscli
             aws --version
             yarn install
       - run:
