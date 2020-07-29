@@ -1,0 +1,130 @@
+version: 2.1
+executors:
+  default:
+    working_directory: ~/circleciTest
+    docker:
+      - image: circleci/python:3-node
+
+jobs:
+  setup:
+    executor: default
+    steps:
+      - checkout
+      - run:
+          name: "Version check"
+          command: |
+            python --version
+            node --version
+            yarn --version
+  unit_test:
+    executor: default
+    steps:
+      - checkout
+      - run:
+          name: "Install"
+          command: |
+            yarn install
+      - run:
+          name: "Unit Test"
+          command: |
+            echo 'Unit Test'
+  deploy:
+    executor: default
+    parameters:
+      env:
+        default: "itg"
+        type: enum
+        enum: ["itg", "stg", "prd"]
+    steps:
+      - checkout
+      - run:
+          name: "Install"
+          command: |
+            sudo pip install awscli
+            aws --version
+            yarn install
+      - run:
+          name: "Build"
+          command: |
+            yarn build
+      - run:
+          name: "Deploy"
+          command: |
+            ls -al
+            yarn build
+            yarn eslint . --ext '.ts'
+  e2e_test:
+    executor: default
+    steps:
+      - checkout
+      - run:
+          name: "Install"
+          command: |
+            yarn install
+      - run:
+          name: "E2E Test"
+          command: |
+            echo "E2E Test"
+
+workflows:
+  version: 2.1
+  default-workflow:
+    jobs:
+      - setup:
+          filters:
+            branches:
+              ignore:
+                - develop
+                - release
+                - master
+      - unit_test:
+          requires:
+            - setup
+  release-itg-workflow:
+    jobs:
+      - setup:
+          filters:
+            branches:
+              only:
+                - develop
+      - unit_test:
+          requires:
+            - setup
+      - deploy:
+          env: "itg"
+          requires:
+            - unit_test
+      - e2e_test:
+          requires:
+            - deploy
+  release-stg-workflow:
+    jobs:
+      - setup:
+          filters:
+            branches:
+              only:
+                - release
+      - unit_test:
+          requires:
+            - setup
+      - deploy:
+          env: "stg"
+          requires:
+            - unit_test
+      - e2e_test:
+          requires:
+            - deploy
+  release-prd-workflow:
+    jobs:
+      - setup:
+          filters:
+            branches:
+              only:
+                - master
+      - unit_test:
+          requires:
+            - setup
+      - deploy:
+          env: "prd"
+          requires:
+            - unit_test
